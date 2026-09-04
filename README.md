@@ -74,7 +74,7 @@ Modex_画图代码包_20260903/
 
 ## Skills
 
-加密 skill（`.enc`）保持原安装态，未解密。主要包括：
+主要包括：
 
 - `paper-figure` / `nature-figure`：论文与 Nature 风格绘图 skill
 - `paper-figure-html`：HTML/SVG 结构图模板与检查
