@@ -80,6 +80,7 @@ def run(workspace: Path, stage: str) -> dict[str, Any]:
     # Lifecycle artifacts belong under _tmp. The project root is reserved for
     # declared research inputs and deliverables, not automatic controller state.
     decision_path = workspace / "_tmp" / "FIGURE_DECISIONS.json"
+    decision_path.parent.mkdir(parents=True, exist_ok=True)
     decision_path.write_text(json.dumps(decisions, ensure_ascii=False, indent=2), encoding="utf-8")
     if stage == "post":
         visual = inspect_workspace(workspace, include_pdf=True)

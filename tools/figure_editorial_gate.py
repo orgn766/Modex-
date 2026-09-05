@@ -14,6 +14,10 @@ import re
 import sys
 from pathlib import Path
 
+_TOOLS_DIR = Path(__file__).resolve().parent
+if str(_TOOLS_DIR) not in sys.path:
+    sys.path.insert(0, str(_TOOLS_DIR))
+
 from figure_data_shape_profile import profile_workspace
 
 

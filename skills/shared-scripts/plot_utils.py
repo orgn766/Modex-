@@ -182,6 +182,19 @@ def _read_palette_marker():
     return None
 
 
+def _hunan_graduate_figure_rules():
+    """Return true for the Hunan graduate competition workspace."""
+    for p in ('CLAUDE.md', '../CLAUDE.md', '../../CLAUDE.md'):
+        try:
+            if os.path.isfile(p):
+                text = open(p, encoding='utf-8', errors='replace').read()
+                if 'hunan_graduate' in text or '湖南省研究生数学建模竞赛' in text:
+                    return True
+        except Exception:
+            pass
+    return False
+
+
 def _read_custom_colors():
     """读 CLAUDE.md 的 <!-- MH_DATA_FIG_COLORS=#aabbcc,#ddeeff,... -->（用户自定义取色）：
     返回合法 hex 列表(至少2个才算有效),否则 None。非法值过滤,防脏输入崩溃。"""
@@ -512,10 +525,16 @@ def setup_style(palette='auto'):
             print("  Or install: Windows=SimHei, Linux=fonts-noto-cjk-extra, macOS=built-in")
             zh_fonts = ['DejaVu Sans']
 
+    # Use a real family fallback list so scientific Unicode such as CO₂/±/− can
+    # fall through to DejaVu Sans when the selected CJK font lacks that glyph.
+    fallback_fonts = zh_fonts + [
+        name for name in ('Arial', 'Helvetica', 'DejaVu Sans')
+        if name in available_fonts and name not in zh_fonts
+    ]
     matplotlib.rcParams.update({
         'font.size': 11,
-        'font.family': 'sans-serif',
-        'font.sans-serif': zh_fonts + ['Arial', 'Helvetica', 'DejaVu Sans'],
+        'font.family': fallback_fonts,
+        'font.sans-serif': fallback_fonts,
         'axes.unicode_minus': False,
         'axes.labelsize': 12,
         'axes.titlesize': 13,
@@ -606,6 +625,15 @@ def setup_style(palette='auto'):
             'ytick.major.width': 2.0,
             'xtick.major.size': 6,
             'ytick.major.size': 6,
+        })
+
+    # The Hunan graduate competition requires all in-figure type to land in
+    # the 7.5--9 pt range after the standard inclusion scaling. Start at 9 pt;
+    # figure_render_qa verifies the actual planned final size.
+    if _hunan_graduate_figure_rules():
+        matplotlib.rcParams.update({
+            'font.size': 9, 'axes.labelsize': 9, 'axes.titlesize': 9,
+            'xtick.labelsize': 9, 'ytick.labelsize': 9, 'legend.fontsize': 9,
         })
 
     # ★ Hook plt.savefig — 即使不用 save_fig()，也能自动防遮挡

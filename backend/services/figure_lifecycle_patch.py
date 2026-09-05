@@ -276,12 +276,24 @@ def _read_feedback(root: Path, skill: str) -> str:
         return ""
 
 
-def _vision_enabled(root: Path) -> bool:
+def _vision_enabled(root: Path, params: Optional[dict[str, Any]] = None) -> bool:
+    raw = (params or {}).get("data_fig_vision")
+    if raw is True or (isinstance(raw, (int, str)) and str(raw).strip().lower() in {"1", "true", "yes", "on"}):
+        return True
     md = root / "CLAUDE.md"
     try:
         return "MH_DATA_FIG_VISION=1" in md.read_text(encoding="utf-8", errors="ignore")
     except Exception:
         return False
+
+
+def _vision_review_reason(result: dict[str, Any], report: dict[str, Any]) -> str:
+    verdict = str(report.get("verdict") or "").upper()
+    if result.get("returncode") or not report:
+        return str(result.get("error") or result.get("stderr") or "vision command failed or report is missing")
+    if verdict != "PASS":
+        return str(report.get("reason") or f"vision review returned {verdict or 'UNKNOWN'}")
+    return ""
 
 
 def _run_optional_vision(root: Path) -> dict[str, Any]:
@@ -408,21 +420,21 @@ def install() -> bool:
         except Exception:
             pass
         vision_report: dict[str, Any] = {}
-        if _vision_enabled(root):
+        vision_review_reason = ""
+        if _vision_enabled(root, extra_params):
             vision_result = await _run_async(_run_optional_vision, root)
             vision_report = _read_report(root, "FIGURE_VISION_REVIEW.json")
-            if vision_report.get("verdict") in {"REVIEW", "SKIP", "SKIPPED"}:
-                log.warning("[figure-lifecycle] vision review=%s workspace=%s", vision_report.get("verdict"), root)
-            elif vision_result.get("returncode"):
-                log.warning("[figure-lifecycle] vision command failed workspace=%s", root)
+            vision_review_reason = _vision_review_reason(vision_result, vision_report)
+            if vision_review_reason:
+                log.warning("[figure-lifecycle] vision review required workspace=%s reason=%s", root, vision_review_reason)
         # A successful deterministic postflight may still require human/model
         # review when the optional visual model is unavailable or returns REVIEW.
-        if vision_report and str(vision_report.get("verdict") or "").upper() == "REVIEW":
+        if vision_review_reason:
             post_report = dict(post_report)
             post_report.setdefault("reviews", []).append({
                 "type": "multimodal_vision_review", "severity": "review",
                 "action": "resolve visual-model review before declaring figures final",
-                "evidence": vision_report.get("reason", "vision review returned REVIEW"),
+                "evidence": vision_review_reason,
             })
             post_report["verdict"] = "REVIEW" if str(post_report.get("verdict") or "").upper() == "PASS" else post_report.get("verdict")
             try:

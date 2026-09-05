@@ -36,6 +36,8 @@ Generate figures and tables from data: **$ARGUMENTS**
 
 **Quality floor**: 300 DPI PDF, no in-figure title (`plt.title`), font ≥9pt, grayscale-distinguishable, **`figure_check.sh` exit code 0** (CRITICAL only — INFO/WARNING don't block).
 
+**湖南省研究生数学建模竞赛覆盖规则**：当 `CLAUDE.md` 的 `competition=hunan_graduate` 或题名包含“湖南省研究生数学建模竞赛”时，裸 `setup_style()` 自动使用 9pt 基线；所有显式字号也必须让标准插入尺寸下的最终字号落在 7.5–9pt。`figure_render_qa.py` 按 `latex_includes.tex`（无该文件时按本技能的长宽比分档）计算缩放并执行硬门禁。
+
 **Color palette and recipes**: read `_utils/figure_style_guide.md` (color schemes) and `_utils/figure_recipes_*.md` (code examples).
 
 plot_utils functions: `setup_style`, `save_fig`, `heatmap`, `forest_plot`, `trend_plot`, `bar_compare`, `distribution_plot`, `scatter_plot`, `residual_diagnostic`, `multi_line_plot`, `box_plot`, `radar_plot`, `subplot_grid`
@@ -915,16 +917,16 @@ echo "=== Summary: $FAILED scripts failed ==="
 
 **Do NOT proceed to Step 5 until every gen_fig_*.py has produced its PDF.**
 
-### Step 4.5: 数据图视觉质检（可选，默认关 · 仅当用户在高级选项开启时才跑）
+### Step 4.5: 数据图视觉质检（由生命周期控制器统一执行）
 
-⛔ **这一步默认不执行**。只有工作区 CLAUDE.md 含 `MH_DATA_FIG_VISION=1` 标记（用户在前端「高级选项」开启了「数据图视觉质检」）时才跑。它会对每张数据图调 vision 模型看图，检查坐标轴标签截断 / 图例压数据 / 刻度重叠等**肉眼硬伤**（`figure_check.sh` 的静态检查抓不到这些渲染层问题）。**会消耗额度**（每张图每轮都调一次 vision），所以默认关。
+工作区含 `MH_DATA_FIG_VISION=1` 时，后台 `figure_lifecycle_patch.py` 在 postflight 后按 workspace 批量调用 `figure_vision_review.py`。下面的旧逐图脚本仅留作历史说明，**不得执行**；缺工具、调用失败、报告缺失或返回非 PASS 时，生命周期控制器必须保留 `REVIEW`，不得静默写成 PASS。
 
 先跑下面这段**检测脚本**，它会对每张数据图调 vision 并把结果记进独立账本 `_tmp/datafig_vision_*.txt`：
 
 ```bash
 # ⛔ 门 1：默认关。CLAUDE.md 无 MH_DATA_FIG_VISION=1 标记就整段跳过（一个字不打，静默）
-if ! grep -q 'MH_DATA_FIG_VISION=1' CLAUDE.md 2>/dev/null; then
-  :  # 用户没开数据图视觉质检 → 跳过（默认行为，省额度）
+if true; then
+  :  # RETIRED：统一由 figure_lifecycle_patch.py 调用 workspace 级视觉复核
 # ⛔ 门 2：快速模式让位。省额度优先，即使开了数据图 vision 也跳过
 elif grep -q 'MH_FAST_MODE=1' CLAUDE.md 2>/dev/null; then
   echo "⚡ 快速模式：跳过数据图视觉质检（省额度）"

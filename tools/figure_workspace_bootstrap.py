@@ -22,9 +22,10 @@ TOOL_NAMES = (
     "figure_visual_semantics.py",
     "figure_visual_critic.py",
     "figure_vision_review.py",
-    "data_fig_vision_check.py",
     "figure_decision_planner.py",
     "figure_quality_gate.py",
+    "figure_render_qa.py",
+    "figure_number_consistency_gate.py",
     "figure_system_controller.py",
     "figure_workspace_bootstrap.py",
 )
